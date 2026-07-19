@@ -1,0 +1,3 @@
+#!/bin/sh
+echo 'Maven wrapper is not available in this environment. Please install Maven or use a container build.'
+exit 1
