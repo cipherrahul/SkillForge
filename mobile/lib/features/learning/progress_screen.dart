@@ -85,8 +85,28 @@ class _ProgressScreenState extends State<ProgressScreen> {
     }
   }
 
+  int _selectedDayIndex = 3;
+  int _selectedMonthOffset = 0;
+  String _selectedFilter = 'All';
+
+  final List<String> _months = const [
+    'January 2023', 'February 2023', 'March 2023', 'April 2023',
+    'May 2023', 'June 2023', 'July 2023', 'August 2023',
+    'September 2023', 'October 2023', 'November 2023', 'December 2023'
+  ];
+
+  final List<List<String>> _monthDays = const [
+    ['25', '26', '27', '28', '29', '30', '31'], // Apr
+    ['28', '29', '30', '31', '1', '2', '3'],    // May
+    ['26', '27', '28', '29', '30', '1', '2'],    // Jun
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final currentMonthIndex = (4 + _selectedMonthOffset).clamp(0, 11);
+    final monthName = _months[currentMonthIndex];
+    final daysList = _monthDays[(_selectedMonthOffset + 1).clamp(0, 2)];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -101,7 +121,9 @@ class _ProgressScreenState extends State<ProgressScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF0F172A)),
-            onPressed: () {},
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Statistic options opened')));
+            },
           ),
         ],
       ),
@@ -110,7 +132,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Blue Calendar Card matching Dream Theme Screen 2
+            // 1. Blue Calendar Card with interactive Month & Day switching
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -122,19 +144,38 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('May 2023', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Text(monthName,
+                            key: ValueKey(monthName),
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                      ),
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-                            child: const Icon(Icons.chevron_left_rounded, color: Colors.white, size: 18),
+                          GestureDetector(
+                            onTap: () {
+                              if (_selectedMonthOffset > -1) {
+                                setState(() => _selectedMonthOffset--);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                              child: const Icon(Icons.chevron_left_rounded, color: Colors.white, size: 18),
+                            ),
                           ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-                            child: const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              if (_selectedMonthOffset < 1) {
+                                setState(() => _selectedMonthOffset++);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                              child: const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 18),
+                            ),
                           ),
                         ],
                       ),
@@ -150,18 +191,21 @@ class _ProgressScreenState extends State<ProgressScreen> {
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: const [
-                      _DayCell('28'), _DayCell('29'), _DayCell('30'),
-                      _DayCell('31', isSelected: true),
-                      _DayCell('1'), _DayCell('2'), _DayCell('3'),
-                    ],
+                    children: List.generate(daysList.length, (idx) {
+                      final dayStr = daysList[idx];
+                      final isSelected = _selectedDayIndex == idx;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedDayIndex = idx),
+                        child: _DayCell(dayStr, isSelected: isSelected),
+                      );
+                    }),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
 
-            // 2. Purple & Green Record Cards matching Dream Theme Screen 2
+            // 2. Interactive Record Cards
             Row(
               children: [
                 Expanded(
@@ -174,21 +218,36 @@ class _ProgressScreenState extends State<ProgressScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('2 Days', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+                        Text('${_selectedDayIndex + 1} Days',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
                         const Text('Current Record', style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w500)),
                         const SizedBox(height: 14),
                         Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                              child: const Text('4 Lesson', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.purpleAccent)),
+                            GestureDetector(
+                              onTap: () => setState(() => _selectedFilter = 'Lesson'),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: _selectedFilter == 'Lesson' ? Colors.amber.shade300 : Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text('${_selectedDayIndex * 2 + 2} Lesson',
+                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.purpleAccent)),
+                              ),
                             ),
                             const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                              child: const Text('8 Challenges', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.purpleAccent)),
+                            GestureDetector(
+                              onTap: () => setState(() => _selectedFilter = 'Challenge'),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: _selectedFilter == 'Challenge' ? Colors.amber.shade300 : Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text('${_selectedDayIndex * 3 + 4} Challenges',
+                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.purpleAccent)),
+                              ),
                             ),
                           ],
                         ),
@@ -211,7 +270,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('3 Days', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+                        Text('${_selectedDayIndex + 2} Days',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
                         const Text('Current Record', style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w500)),
                         const SizedBox(height: 14),
                         Row(
@@ -219,13 +279,15 @@ class _ProgressScreenState extends State<ProgressScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                              child: const Text('7 Lesson', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.greenAccent)),
+                              child: Text('${_selectedDayIndex * 2 + 3} Lesson',
+                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.greenAccent)),
                             ),
                             const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                              child: const Text('11 Challenges', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.greenAccent)),
+                              child: Text('${_selectedDayIndex * 3 + 5} Challenges',
+                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.greenAccent)),
                             ),
                           ],
                         ),
@@ -237,20 +299,42 @@ class _ProgressScreenState extends State<ProgressScreen> {
             ),
             const SizedBox(height: 24),
 
-            // 3. Study Statistic Chart Section matching Dream Theme Screen 2
+            // 3. Dynamic Study Statistic Bar Chart
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Study Statistic', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
                 Row(
                   children: [
-                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle)),
-                    const SizedBox(width: 4),
-                    const Text('Learning', style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                    GestureDetector(
+                      onTap: () => setState(() => _selectedFilter = 'Learning'),
+                      child: Row(
+                        children: [
+                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle)),
+                          const SizedBox(width: 4),
+                          Text('Learning',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: _selectedFilter == 'Learning' ? AppTheme.primary : const Color(0xFF64748B),
+                                  fontWeight: _selectedFilter == 'Learning' ? FontWeight.w800 : FontWeight.w500)),
+                        ],
+                      ),
+                    ),
                     const SizedBox(width: 12),
-                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppTheme.greenAccent, shape: BoxShape.circle)),
-                    const SizedBox(width: 4),
-                    const Text('Challenge', style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                    GestureDetector(
+                      onTap: () => setState(() => _selectedFilter = 'Challenge'),
+                      child: Row(
+                        children: [
+                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppTheme.greenAccent, shape: BoxShape.circle)),
+                          const SizedBox(width: 4),
+                          Text('Challenge',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: _selectedFilter == 'Challenge' ? AppTheme.greenAccent : const Color(0xFF64748B),
+                                  fontWeight: _selectedFilter == 'Challenge' ? FontWeight.w800 : FontWeight.w500)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -268,14 +352,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   crossAxisAlignment: CrossAxisAlignment.end,
-                  children: const [
-                    _BarGroup('Sun', h1: 60, h2: 40),
-                    _BarGroup('Mon', h1: 120, h2: 90),
-                    _BarGroup('Tue', h1: 100, h2: 70),
-                    _BarGroup('Wed', h1: 85, h2: 60),
-                    _BarGroup('Thu', h1: 95, h2: 75),
-                    _BarGroup('Fri', h1: 70, h2: 50),
-                    _BarGroup('Sat', h1: 40, h2: 30),
+                  children: [
+                    _BarGroup('Sun', h1: 40 + (_selectedDayIndex * 5), h2: 30 + (_selectedDayIndex * 4)),
+                    _BarGroup('Mon', h1: 100 + (_selectedDayIndex * 3), h2: 80 + (_selectedDayIndex * 2)),
+                    _BarGroup('Tue', h1: 90 + (_selectedDayIndex * 4), h2: 60 + (_selectedDayIndex * 3)),
+                    _BarGroup('Wed', h1: 80 + (_selectedDayIndex * 2), h2: 55 + (_selectedDayIndex * 4)),
+                    _BarGroup('Thu', h1: 95 + (_selectedDayIndex * 3), h2: 70 + (_selectedDayIndex * 2)),
+                    _BarGroup('Fri', h1: 65 + (_selectedDayIndex * 4), h2: 45 + (_selectedDayIndex * 3)),
+                    _BarGroup('Sat', h1: 35 + (_selectedDayIndex * 2), h2: 25 + (_selectedDayIndex * 2)),
                   ],
                 ),
               ),

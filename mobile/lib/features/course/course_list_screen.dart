@@ -14,6 +14,7 @@ class CourseListScreen extends StatefulWidget {
 }
 
 class _CourseListScreenState extends State<CourseListScreen> {
+  List<dynamic> _allCourses = [];
   List<dynamic> _courses = [];
   bool _loading = true;
   String? _error;
@@ -34,6 +35,7 @@ class _CourseListScreenState extends State<CourseListScreen> {
       'price': 4999,
       'durationHours': 48,
       'level': 'Beginner',
+      'category': 'Web Development',
       'averageRating': 4.8,
       'thumbnailUrl': '',
     },
@@ -44,6 +46,7 @@ class _CourseListScreenState extends State<CourseListScreen> {
       'price': 3499,
       'durationHours': 32,
       'level': 'Intermediate',
+      'category': 'Mobile Development',
       'averageRating': 4.9,
       'thumbnailUrl': '',
     },
@@ -54,6 +57,7 @@ class _CourseListScreenState extends State<CourseListScreen> {
       'price': 5999,
       'durationHours': 60,
       'level': 'Advanced',
+      'category': 'Backend Architecture',
       'averageRating': 4.7,
       'thumbnailUrl': '',
     },
@@ -64,6 +68,7 @@ class _CourseListScreenState extends State<CourseListScreen> {
       'price': 3999,
       'durationHours': 40,
       'level': 'All Levels',
+      'category': 'Data Science',
       'averageRating': 4.8,
       'thumbnailUrl': '',
     },
@@ -72,9 +77,7 @@ class _CourseListScreenState extends State<CourseListScreen> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final url = _searchQuery.isNotEmpty
-          ? '${AppConstants.coursesUrl}?keyword=${Uri.encodeComponent(_searchQuery)}'
-          : AppConstants.coursesUrl;
+      final url = AppConstants.coursesUrl;
       final resp = await ApiClient.get(url);
       if (resp.statusCode == 200) {
         final body = jsonDecode(resp.body);
@@ -85,24 +88,36 @@ class _CourseListScreenState extends State<CourseListScreen> {
         } else if (rawData is Map && rawData['content'] is List) {
           list = rawData['content'];
         }
-        if (list.isEmpty && _searchQuery.isEmpty) {
+        if (list.isEmpty) {
           list = List.from(_defaultCourses);
         }
-        setState(() {
-          _courses = list;
-          _loading = false;
-        });
+        _allCourses = List.from(list);
+        _filterCourses(_searchQuery);
+        setState(() => _loading = false);
       } else {
-        setState(() {
-          _courses = List.from(_defaultCourses);
-          _loading = false;
-        });
+        _allCourses = List.from(_defaultCourses);
+        _filterCourses(_searchQuery);
+        setState(() => _loading = false);
       }
     } catch (_) {
-      setState(() {
-        _courses = List.from(_defaultCourses);
-        _loading = false;
-      });
+      _allCourses = List.from(_defaultCourses);
+      _filterCourses(_searchQuery);
+      setState(() => _loading = false);
+    }
+  }
+
+  void _filterCourses(String query) {
+    if (query.trim().isEmpty) {
+      _courses = List.from(_allCourses);
+    } else {
+      final q = query.trim().toLowerCase();
+      _courses = _allCourses.where((c) {
+        final title = (c['title'] ?? '').toString().toLowerCase();
+        final desc = (c['description'] ?? '').toString().toLowerCase();
+        final cat = (c['category'] ?? c['categorySlug'] ?? '').toString().toLowerCase();
+        final level = (c['level'] ?? '').toString().toLowerCase();
+        return title.contains(q) || desc.contains(q) || cat.contains(q) || level.contains(q);
+      }).toList();
     }
   }
 
@@ -139,32 +154,45 @@ class _CourseListScreenState extends State<CourseListScreen> {
                   ),
                   const SizedBox(height: 16),
                   Container(
-                    height: 46,
+                    height: 48,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4)),
+                      ],
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     child: Row(
                       children: [
-                        const Icon(Icons.search_rounded, color: Colors.white70, size: 20),
+                        const Icon(Icons.search_rounded, color: AppTheme.primary, size: 20),
                         const SizedBox(width: 10),
                         Expanded(
                           child: TextField(
                             controller: _searchController,
-                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14, fontWeight: FontWeight.w600),
+                            cursorColor: AppTheme.primary,
                             decoration: const InputDecoration(
-                              hintText: 'Search for courses, topics...',
-                              hintStyle: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w400),
+                              hintText: 'What do you want to learn?',
+                              hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.w400),
+                              filled: false,
+                              fillColor: Colors.transparent,
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
                               contentPadding: EdgeInsets.zero,
                             ),
+                            onChanged: (v) {
+                              setState(() {
+                                _searchQuery = v;
+                                _filterCourses(v);
+                              });
+                            },
                             onSubmitted: (v) {
-                              setState(() => _searchQuery = v.trim());
-                              _load();
+                              setState(() {
+                                _searchQuery = v;
+                                _filterCourses(v);
+                              });
                             },
                           ),
                         ),
@@ -172,10 +200,12 @@ class _CourseListScreenState extends State<CourseListScreen> {
                           GestureDetector(
                             onTap: () {
                               _searchController.clear();
-                              setState(() => _searchQuery = '');
-                              _load();
+                              setState(() {
+                                _searchQuery = '';
+                                _filterCourses('');
+                              });
                             },
-                            child: const Icon(Icons.close_rounded, color: Colors.white, size: 18),
+                            child: const Icon(Icons.close_rounded, color: Color(0xFF64748B), size: 18),
                           ),
                       ],
                     ),

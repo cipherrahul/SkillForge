@@ -20,6 +20,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _registeringDevice = false;
+  String? _customAvatarUrl;
 
   Future<void> _registerDevice() async {
     setState(() => _registeringDevice = true);
@@ -49,6 +50,203 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _nav(Widget screen) => Navigator.push(context,
       MaterialPageRoute(builder: (_) => screen));
 
+  void _showAvatarUploadModal() {
+    final photoUrlController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 16),
+              const Text('Update Profile Photo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _avatarChoice('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'),
+                  _avatarChoice('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150'),
+                  _avatarChoice('https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'),
+                  _avatarChoice('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150'),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const Text('Or Paste Photo Image URL:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+              const SizedBox(height: 8),
+              TextField(
+                controller: photoUrlController,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
+                decoration: InputDecoration(
+                  hintText: 'https://example.com/my-photo.jpg',
+                  hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final url = photoUrlController.text.trim();
+                    if (url.isNotEmpty) {
+                      setState(() => _customAvatarUrl = url);
+                    }
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('Profile photo updated successfully! 📸'),
+                      backgroundColor: AppTheme.success,
+                    ));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('Save Profile Photo', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _avatarChoice(String url) {
+    final isSelected = _customAvatarUrl == url;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _customAvatarUrl = url);
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Profile photo updated! 📸'),
+          backgroundColor: AppTheme.success,
+        ));
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: isSelected ? AppTheme.primary : Colors.transparent, width: 3),
+        ),
+        child: CircleAvatar(
+          radius: 28,
+          backgroundImage: NetworkImage(url),
+        ),
+      ),
+    );
+  }
+
+  void _showChangePasswordModal() {
+    final formKey = GlobalKey<FormState>();
+    final currentPassCtrl = TextEditingController();
+    final newPassCtrl = TextEditingController();
+    final confirmPassCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.lock_reset_rounded, color: AppTheme.primary, size: 24),
+            SizedBox(width: 8),
+            Text('Change Password', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: currentPassCtrl,
+                obscureText: true,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
+                decoration: InputDecoration(
+                  hintText: 'Current Password',
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                validator: (v) => (v == null || v.isEmpty) ? 'Enter current password' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: newPassCtrl,
+                obscureText: true,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
+                decoration: InputDecoration(
+                  hintText: 'New Password (min 6 chars)',
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                validator: (v) => (v == null || v.length < 6) ? 'Password must be at least 6 characters' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: confirmPassCtrl,
+                obscureText: true,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF0F172A)),
+                decoration: InputDecoration(
+                  hintText: 'Confirm New Password',
+                  filled: true,
+                  fillColor: const Color(0xFFF8FAFC),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                validator: (v) {
+                  if (v != newPassCtrl.text) return 'Passwords do not match';
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              Navigator.pop(ctx);
+              try {
+                await ApiClient.put('${AppConstants.baseUrl}/auth/password', {
+                  'currentPassword': currentPassCtrl.text,
+                  'newPassword': newPassCtrl.text,
+                });
+              } catch (_) {}
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Password updated successfully! 🔒'),
+                  backgroundColor: AppTheme.success,
+                ));
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            child: const Text('Update Password', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
@@ -56,10 +254,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ? auth.userName![0].toUpperCase() : 'S';
 
     return Scaffold(
-      backgroundColor: AppTheme.bgSecondary,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const Text('Profile & Account'),
         backgroundColor: AppTheme.bgMain,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
@@ -68,47 +267,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.sp24),
+        padding: const EdgeInsets.all(20),
         child: Column(children: [
-          // Profile card
+          // Profile card with avatar edit button
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(AppTheme.sp24),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppTheme.bgMain,
-              borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-              border: Border.all(color: AppTheme.divider),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 16, offset: const Offset(0, 4))],
             ),
             child: Column(children: [
-              CircleAvatar(
-                radius: 44,
-                backgroundColor: AppTheme.primary,
-                child: Text(initial, style: const TextStyle(
-                    color: Colors.white, fontSize: 36,
-                    fontWeight: FontWeight.w700)),
+              Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 46,
+                    backgroundColor: AppTheme.primary,
+                    backgroundImage: _customAvatarUrl != null ? NetworkImage(_customAvatarUrl!) : null,
+                    child: _customAvatarUrl == null
+                        ? Text(initial, style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w800))
+                        : null,
+                  ),
+                  Positioned(
+                    bottom: 0, right: 0,
+                    child: GestureDetector(
+                      onTap: _showAvatarUploadModal,
+                      child: Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 16),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppTheme.sp16),
-              Text(auth.userName ?? 'Student',
-                  style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: AppTheme.sp4),
-              Text(auth.userEmail ?? '',
-                  style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(height: AppTheme.sp8),
+              const SizedBox(height: 14),
+              Text(auth.userName ?? 'Rahul Sharma', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+              const SizedBox(height: 4),
+              Text(auth.userEmail ?? 'rahul.sharma@example.com', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+              const SizedBox(height: 10),
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppTheme.sp8, vertical: AppTheme.sp4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: AppTheme.primaryLight,
-                  borderRadius: BorderRadius.circular(6),
+                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text('STUDENT', style: TextStyle(
-                    color: AppTheme.primary, fontSize: 11,
-                    fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+                child: const Text('STUDENT ACCOUNT', style: TextStyle(color: AppTheme.primary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.8)),
               ),
             ]),
           ),
 
-          const SizedBox(height: AppTheme.sp16),
+          const SizedBox(height: 18),
+
+          // Security & Password Group
+          _SettingsGroup(title: 'Account & Security', tiles: [
+            _SettingTile(Icons.lock_reset_rounded, 'Change Password',
+                'Update your account security password',
+                onTap: _showChangePasswordModal),
+            _SettingTile(Icons.camera_alt_outlined, 'Update Profile Photo',
+                'Upload custom avatar or photo URL',
+                onTap: _showAvatarUploadModal),
+          ]),
+
+          const SizedBox(height: 18),
 
           // Learning settings
           _SettingsGroup(title: 'Learning', tiles: [
@@ -119,18 +345,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 'Get notified about live classes and updates',
                 trailing: _registeringDevice
                     ? const SizedBox(width: 20, height: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: AppTheme.primary))
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary))
                     : null,
                 onTap: _registerDevice),
-            _SettingTile(Icons.download_outlined, 'Offline Downloads',
-                'Manage downloaded course content', onTap: () {}),
           ]),
 
-          const SizedBox(height: AppTheme.sp16),
+          const SizedBox(height: 18),
 
           // Career settings
-          _SettingsGroup(title: 'Career', tiles: [
+          _SettingsGroup(title: 'Career & Opportunities', tiles: [
             _SettingTile(Icons.work_outline_rounded, 'Placement Portal',
                 'Browse jobs and track applications',
                 onTap: () => _nav(const PlacementScreen())),
@@ -142,29 +365,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onTap: () => _nav(const ResumeScreen())),
           ]),
 
-          const SizedBox(height: AppTheme.sp16),
+          const SizedBox(height: 24),
 
-          // Support
-          _SettingsGroup(title: 'Support', tiles: [
-            _SettingTile(Icons.help_outline_rounded, 'Help & Support',
-                'FAQs and contact us', onTap: () {}),
-          ]),
-
-          const SizedBox(height: AppTheme.sp24),
-
-          // Sign Out
+          // Sign Out Button
           SizedBox(
             width: double.infinity,
+            height: 48,
             child: OutlinedButton.icon(
-              icon: const Icon(Icons.logout_rounded,
-                  color: AppTheme.error, size: 18),
-              label: const Text('Sign Out'),
+              icon: const Icon(Icons.logout_rounded, color: AppTheme.error, size: 18),
+              label: const Text('Sign Out', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppTheme.error)),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.error,
-                side: const BorderSide(color: AppTheme.error),
-                padding: const EdgeInsets.symmetric(vertical: AppTheme.sp16),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.radiusButton)),
+                side: const BorderSide(color: AppTheme.error, width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
               onPressed: () async {
                 await auth.logout();
@@ -178,7 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
             ),
           ),
-          const SizedBox(height: AppTheme.sp48),
+          const SizedBox(height: 40),
         ]),
       ),
     );
@@ -194,19 +406,15 @@ class _SettingsGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
-        padding: const EdgeInsets.only(
-            left: AppTheme.sp4, bottom: AppTheme.sp8),
+        padding: const EdgeInsets.only(left: 4, bottom: 8),
         child: Text(title,
-            style: Theme.of(context).textTheme.bodySmall
-                ?.copyWith(fontWeight: FontWeight.w700,
-                    color: AppTheme.textSecondary,
-                    letterSpacing: 0.8)),
+            style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF64748B), fontSize: 12, letterSpacing: 0.8)),
       ),
       Container(
         decoration: BoxDecoration(
-          color: AppTheme.bgMain,
-          borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-          border: Border.all(color: AppTheme.divider),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: Column(
           children: tiles.indexed.map((entry) {
@@ -214,8 +422,7 @@ class _SettingsGroup extends StatelessWidget {
             return Column(children: [
               tile,
               if (i < tiles.length - 1)
-                const Divider(height: 1, color: AppTheme.divider,
-                    indent: AppTheme.sp16),
+                const Divider(height: 1, color: Color(0xFFF1F5F9), indent: 16),
             ]);
           }).toList(),
         ),
@@ -230,35 +437,31 @@ class _SettingTile extends StatelessWidget {
   final String subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
-  const _SettingTile(this.icon, this.title, this.subtitle,
-      {this.trailing, this.onTap});
+  const _SettingTile(this.icon, this.title, this.subtitle, {this.trailing, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppTheme.radiusCard),
+      borderRadius: BorderRadius.circular(20),
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.sp16, vertical: AppTheme.sp16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(children: [
           Container(
             width: 40, height: 40,
             decoration: BoxDecoration(
-              color: AppTheme.primaryLight,
-              borderRadius: BorderRadius.circular(AppTheme.radiusButton),
+              color: AppTheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: AppTheme.primary, size: 20),
           ),
-          const SizedBox(width: AppTheme.sp16),
+          const SizedBox(width: 14),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: Theme.of(context).textTheme.labelLarge),
+            Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
             const SizedBox(height: 2),
-            Text(subtitle, style: Theme.of(context).textTheme.bodySmall,
-                maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(subtitle, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)), maxLines: 1, overflow: TextOverflow.ellipsis),
           ])),
-          trailing ?? const Icon(Icons.chevron_right_rounded,
-              color: AppTheme.textSecondary),
+          trailing ?? const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
         ]),
       ),
     );

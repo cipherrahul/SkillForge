@@ -104,4 +104,9 @@ public class AuthController {
         UserProfileResponse profile = new UserProfileResponse(user.getId(), user.getEmail(), user.getFullName(), user.getRole(), user.getCreatedAt());
         return ResponseEntity.ok(ApiResponse.success("Password changed successfully", profile, servletRequest.getRequestURI()));
     }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> changePasswordPost(@Valid @RequestBody PasswordChangeRequest request, HttpServletRequest servletRequest) {
+        return changePassword(request, servletRequest);
+    }
 }

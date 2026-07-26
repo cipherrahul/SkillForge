@@ -221,23 +221,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           const SizedBox(height: 18),
-          // Embedded search bar inside header
+          // Embedded search bar inside header matching Dream Theme Screen 1
           GestureDetector(
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseListScreen())),
             child: Container(
-              height: 46,
+              height: 48,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4)),
+                ],
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: const [
-                  Icon(Icons.search_rounded, color: Colors.white70, size: 20),
+                  Icon(Icons.search_rounded, color: AppTheme.primary, size: 20),
                   SizedBox(width: 10),
                   Text('What do you want to learn?',
-                      style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w400)),
+                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.w400)),
                 ],
               ),
             ),
