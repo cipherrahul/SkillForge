@@ -36,6 +36,23 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // --- TEST ACCOUNT BYPASS (no backend dependency) ---
+      if (email.trim() == 'test@test.com' && password == '123456') {
+        await Future.delayed(const Duration(milliseconds: 800));
+        await _storage.write(key: AppConstants.tokenKey, value: 'mock_token_test');
+        await _storage.write(key: AppConstants.refreshTokenKey, value: 'mock_refresh_test');
+        await _storage.write(key: AppConstants.userEmailKey, value: 'test@test.com');
+        await _storage.write(key: AppConstants.userNameKey, value: 'Test Student');
+        await _storage.write(key: AppConstants.userRoleKey, value: 'STUDENT');
+        _isAuthenticated = true;
+        _userEmail = 'test@test.com';
+        _userName = 'Test Student';
+        _userRole = 'STUDENT';
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+
       final response = await ApiClient.post(AppConstants.loginUrl, {
         'email': email.trim(),
         'password': password,

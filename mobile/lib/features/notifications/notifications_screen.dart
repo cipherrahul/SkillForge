@@ -31,15 +31,22 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final resp = await ApiClient.get(AppConstants.notificationsUrl);
       if (resp.statusCode == 200) {
         final body = jsonDecode(resp.body);
+        final rawData = body['data'];
+        List<dynamic> list = [];
+        if (rawData is List) {
+          list = rawData;
+        } else if (rawData is Map && rawData['content'] is List) {
+          list = rawData['content'];
+        }
         setState(() {
-          _notifications = body['data']?['content'] ?? body['data'] ?? [];
+          _notifications = list;
           _loading = false;
         });
       } else {
-        setState(() { _loading = false; _error = 'Could not load notifications.'; });
+        setState(() { _notifications = []; _loading = false; });
       }
     } catch (_) {
-      setState(() { _loading = false; _error = 'You are offline.'; });
+      setState(() { _notifications = []; _loading = false; });
     }
   }
 

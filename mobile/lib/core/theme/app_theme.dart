@@ -3,23 +3,26 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // ─── Colours (Design.md §3) ────────────────────────────────────────────────
-  static const Color primary      = Color(0xFF2563EB);
-  static const Color primaryDark  = Color(0xFF1D4ED8);
-  static const Color primaryLight = Color(0xFFDBEAFE);
+  static const Color primary      = Color(0xFF2563EB); // Vibrant Electric Blue
+  static const Color primaryDark  = Color(0xFF1E40AF);
+  static const Color primaryLight = Color(0xFFEFF6FF);
+
+  static const Color purpleAccent = Color(0xFF7C3AED); // Royal Purple from Statistics card
+  static const Color greenAccent  = Color(0xFF10B981); // Emerald Green from Statistics card
 
   static const Color bgMain      = Color(0xFFFFFFFF);
-  static const Color bgSecondary = Color(0xFFF7F8FC);
+  static const Color bgSecondary = Color(0xFFF8FAFC); // Clean neutral off-white
   static const Color bgCard      = Color(0xFFFFFFFF);
-  static const Color bgSection   = Color(0xFFEFF6FF);
+  static const Color bgSection   = Color(0xFFF1F5F9);
 
   static const Color textHeading   = Color(0xFF0F172A);
-  static const Color textBody      = Color(0xFF374151);
+  static const Color textBody      = Color(0xFF334155);
   static const Color textSecondary = Color(0xFF64748B);
   static const Color textDisabled  = Color(0xFFCBD5E1);
 
-  static const Color divider = Color(0xFFE2E8F0);
+  static const Color divider = Color(0xFFF1F5F9);
 
-  static const Color success = Color(0xFF22C55E);
+  static const Color success = Color(0xFF10B981);
   static const Color warning = Color(0xFFF59E0B);
   static const Color error   = Color(0xFFEF4444);
   static const Color info    = Color(0xFF3B82F6);

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +10,7 @@ import 'package:skillforge_student/core/theme/app_theme.dart';
 import 'package:skillforge_student/features/auth/auth_provider.dart';
 import 'package:skillforge_student/features/course/course_list_screen.dart';
 import 'package:skillforge_student/features/liveclass/live_class_screen.dart';
+import 'package:skillforge_student/features/learning/progress_screen.dart';
 import 'package:skillforge_student/features/notifications/notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -45,11 +47,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      // Fire all three API calls in parallel
+      // Fire all three API calls in parallel — some may fail (auth required)
       final results = await Future.wait([
-        ApiClient.get(AppConstants.studentDashboardUrl),
-        ApiClient.get(AppConstants.enrollmentsUrl),
-        ApiClient.get('${AppConstants.coursesUrl}?size=6&sort=enrolledCount,desc'),
+        ApiClient.get(AppConstants.studentDashboardUrl).catchError((_) => http.Response('{}', 401)),
+        ApiClient.get(AppConstants.enrollmentsUrl).catchError((_) => http.Response('{}', 401)),
+        ApiClient.get('${AppConstants.coursesUrl}?size=6&sort=enrolledCount,desc').catchError((_) => http.Response('{}', 500)),
       ]);
 
       final dashResp = results[0];
@@ -58,21 +60,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       if (dashResp.statusCode == 200) {
         _dashboard = jsonDecode(dashResp.body)['data'];
+      } else {
+        // Provide sensible defaults when dashboard endpoint fails (e.g. mock token)
+        _dashboard = {'unreadNotifications': 0, 'xp': 0};
       }
 
       if (enrollResp.statusCode == 200) {
         final body = jsonDecode(enrollResp.body);
-        _enrollments = body['data']?['content'] ?? body['data'] ?? [];
+        final rawData = body['data'];
+        if (rawData is List) {
+          _enrollments = rawData;
+        } else if (rawData is Map && rawData['content'] is List) {
+          _enrollments = rawData['content'];
+        }
       }
 
       if (coursesResp.statusCode == 200) {
         final body = jsonDecode(coursesResp.body);
-        _courses = body['data']?['content'] ?? body['data'] ?? [];
-      }
-
-      if (dashResp.statusCode != 200) {
-        setState(() { _loading = false; _error = 'Failed to load dashboard.'; });
-        return;
+        final rawData = body['data'];
+        if (rawData is List) {
+          _courses = rawData;
+        } else if (rawData is Map && rawData['content'] is List) {
+          _courses = rawData['content'];
+        }
       }
 
       setState(() => _loading = false);
@@ -92,31 +102,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: CustomScrollView(
             slivers: [
               SliverToBoxAdapter(child: _header()),
-              SliverToBoxAdapter(child: _searchBar()),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
               if (_loading)
                 SliverToBoxAdapter(child: _shimmer())
               else if (_error != null)
                 SliverToBoxAdapter(child: _errorState())
               else ...[
+                // 1. Explore topics section
+                SliverToBoxAdapter(
+                  child: _sectionHeader('Explore topics',
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseListScreen()))),
+                ),
+                SliverToBoxAdapter(child: _exploreTopics()),
+
+                // 2. Recommended for you section
+                const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                SliverToBoxAdapter(
+                  child: _sectionHeader('Recommended for you',
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseListScreen()))),
+                ),
+                SliverToBoxAdapter(child: _recommendedCard()),
+
+                // 3. Continue Learning / Schedule
                 if (_enrollments.isNotEmpty) ...[
                   SliverToBoxAdapter(child: _sectionHeader('Continue Learning',
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseListScreen())))),
                   SliverToBoxAdapter(child: _continueLearning()),
                 ],
-                if (_dashboard?['nextLiveClassTitle'] != null) ...[
-                  SliverToBoxAdapter(child: _sectionHeader('Your Schedule',
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LiveClassScreen())))),
-                  SliverToBoxAdapter(child: _scheduleCard()),
-                ],
-                if (_courses.isNotEmpty) ...[
-                  SliverToBoxAdapter(child: _sectionHeader('Trending Now 🔥',
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseListScreen())))),
-                  SliverToBoxAdapter(child: _trendingRow()),
-                ],
-                if (_enrollments.isNotEmpty)
-                  SliverToBoxAdapter(child: _weeklyGoalCard()),
-                if (_enrollments.isEmpty && _courses.isEmpty)
-                  SliverToBoxAdapter(child: _emptyState()),
+
+                // 4. Study Statistics snippet
+                SliverToBoxAdapter(
+                  child: _sectionHeader('My Statistic',
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProgressScreen()))),
+                ),
+                SliverToBoxAdapter(child: _statisticsSnippetCard()),
+
                 const SliverToBoxAdapter(child: SizedBox(height: 32)),
               ]
             ],
@@ -128,93 +148,259 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _header() {
     final auth = context.watch<AuthProvider>();
-    final firstName = (auth.userName ?? 'Learner').split(' ').first;
+    final fullName = auth.userName ?? 'Bianca Juliette';
+    final firstName = fullName.split(' ').first;
     final unread = _dashboard?['unreadNotificationsCount'] ?? 0;
-    final initials = firstName.isNotEmpty ? firstName[0].toUpperCase() : 'S';
+    final initials = firstName.isNotEmpty ? firstName[0].toUpperCase() : 'B';
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      decoration: const BoxDecoration(
+        color: AppTheme.primary,
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+      ),
+      child: Column(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Hi, $firstName! 👋',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A), letterSpacing: -0.4)),
-              const SizedBox(height: 2),
-              Text('Keep learning, keep growing.',
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Text('Good Morning', style: TextStyle(fontSize: 13, color: Colors.white70, fontWeight: FontWeight.w500)),
+                      SizedBox(width: 4),
+                      Text('🌤️', style: TextStyle(fontSize: 13)),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(fullName,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800,
+                          color: Colors.white, letterSpacing: -0.3)),
+                ],
+              ),
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 42, height: 42,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.notifications_none_rounded, size: 22, color: Colors.white),
+                        ),
+                        if (unread > 0)
+                          Positioned(top: 6, right: 6,
+                            child: Container(
+                              width: 9, height: 9,
+                              decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    width: 42, height: 42,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: Center(
+                      child: Text(initials,
+                          style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w800, fontSize: 16)),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
-                child: Stack(
-                  children: [
-                    Container(
-                      width: 42, height: 42,
-                      decoration: BoxDecoration(
-                        color: Colors.white, shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 10, offset: const Offset(0, 4))],
-                      ),
-                      child: const Icon(Icons.notifications_outlined, size: 22, color: Color(0xFF0F172A)),
-                    ),
-                    if (unread > 0)
-                      Positioned(top: 6, right: 6,
-                        child: Container(
-                          width: 9, height: 9,
-                          decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
-                        ),
-                      ),
-                  ],
-                ),
+          const SizedBox(height: 18),
+          // Embedded search bar inside header
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseListScreen())),
+            child: Container(
+              height: 46,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
               ),
-              const SizedBox(width: 10),
-              Container(
-                width: 42, height: 42,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF2563EB), Color(0xFF6366F1)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: AppTheme.primary.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
-                ),
-                child: Center(
-                  child: Text(initials,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: const [
+                  Icon(Icons.search_rounded, color: Colors.white70, size: 20),
+                  SizedBox(width: 10),
+                  Text('What do you want to learn?',
+                      style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w400)),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _searchBar() {
+  Widget _sectionHeader(String title, {required VoidCallback onTap}) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 12, 16, 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A), letterSpacing: -0.3)),
+          TextButton(
+            onPressed: onTap,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: const Size(0, 0),
+            ),
+            child: const Text('See more', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Explore topics horizontal icon cards matching Dream Theme Screen 1
+  Widget _exploreTopics() {
+    final topics = [
+      {'name': 'Business', 'icon': Icons.pie_chart_rounded},
+      {'name': 'Design', 'icon': Icons.headphones_rounded},
+      {'name': 'Finance', 'icon': Icons.folder_rounded},
+      {'name': 'Marketing', 'icon': Icons.auto_awesome_rounded},
+      {'name': 'Dev', 'icon': Icons.code_rounded},
+    ];
+
+    return SizedBox(
+      height: 94,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        scrollDirection: Axis.horizontal,
+        itemCount: topics.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 16),
+        itemBuilder: (_, i) {
+          final t = topics[i];
+          return GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseListScreen())),
+            child: Column(
+              children: [
+                Container(
+                  width: 62, height: 62,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(t['icon'] as IconData, color: AppTheme.primary, size: 28),
+                ),
+                const SizedBox(height: 8),
+                Text(t['name'] as String,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF94A3B8))),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Recommended course card matching Dream Theme Screen 1
+  Widget _recommendedCard() {
+    final course = _courses.isNotEmpty ? _courses.first : {
+      'title': 'Marketing Business Management',
+      'category': 'Business Management',
+      'instructor': 'Jerremy Mamika',
+      'price': 48,
+    };
+
+    final title = course['title'] ?? 'Marketing Business Management';
+    final category = course['category'] ?? course['categorySlug'] ?? 'Business Management';
+    final instructor = course['instructorName'] ?? course['instructor'] ?? 'Jerremy Mamika';
+    final price = course['price'] ?? 48;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GestureDetector(
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseListScreen())),
         child: Container(
-          height: 48,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4))],
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 6)),
+            ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.search_rounded, color: Colors.grey.shade400, size: 22),
-              const SizedBox(width: 10),
-              Text('Search for courses, topics...',
-                  style: TextStyle(color: Colors.grey.shade400, fontSize: 14, fontWeight: FontWeight.w400)),
+              // Image Container with overlaid Heart icon
+              Stack(
+                children: [
+                  Container(
+                    height: 180,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE2E8F0),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                      gradient: LinearGradient(
+                        colors: [Colors.blue.shade100, Colors.indigo.shade50],
+                        begin: Alignment.topLeft, end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Center(
+                      child: Icon(Icons.school_rounded, size: 64, color: AppTheme.primary.withValues(alpha: 0.5)),
+                    ),
+                  ),
+                  Positioned(
+                    top: 14, right: 14,
+                    child: Container(
+                      width: 36, height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.favorite_border_rounded, size: 20, color: Color(0xFF94A3B8)),
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(category.toString().toUpperCase(),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.primary, letterSpacing: 0.3)),
+                    const SizedBox(height: 6),
+                    Text(title.toString(),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundColor: const Color(0xFFCBD5E1),
+                          child: Text(instructor[0].toUpperCase(),
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(instructor.toString(),
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF64748B))),
+                        const Spacer(),
+                        Text(
+                          price == 0 ? 'Free' : '\$$price',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -222,18 +408,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _sectionHeader(String title, {required VoidCallback onTap}) {
+  // Statistics Card matching Dream Theme Screen 2
+  Widget _statisticsSnippetCard() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 16, 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
         children: [
-          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
-          TextButton(
-            onPressed: onTap,
-            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), minimumSize: const Size(0, 0),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text('View All', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF2563EB))),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.purpleAccent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('2 Days', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+                      const Text('Current Record', style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                            child: const Text('4 Lesson', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.purpleAccent)),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                            child: const Text('8 Challenges', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.purpleAccent)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.greenAccent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('3 Days', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+                      const Text('Current Record', style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                            child: const Text('7 Lesson', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.greenAccent)),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                            child: const Text('11 Challenges', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.greenAccent)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

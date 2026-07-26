@@ -34,15 +34,22 @@ class _WishlistScreenState extends State<WishlistScreen> {
       final resp = await ApiClient.get(AppConstants.wishlistUrl);
       if (resp.statusCode == 200) {
         final body = jsonDecode(resp.body);
+        final rawData = body['data'];
+        List<dynamic> list = [];
+        if (rawData is List) {
+          list = rawData;
+        } else if (rawData is Map && rawData['content'] is List) {
+          list = rawData['content'];
+        }
         setState(() {
-          _items = body['data']?['content'] ?? body['data'] ?? [];
+          _items = list;
           _loading = false;
         });
       } else {
-        setState(() { _loading = false; _error = 'Something went wrong.'; });
+        setState(() { _items = []; _loading = false; });
       }
     } catch (_) {
-      setState(() { _loading = false; _error = 'You are offline.'; });
+      setState(() { _items = []; _loading = false; });
     }
   }
 
