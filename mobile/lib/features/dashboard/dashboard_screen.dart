@@ -61,8 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (dashResp.statusCode == 200) {
         _dashboard = jsonDecode(dashResp.body)['data'];
       } else {
-        // Provide sensible defaults when dashboard endpoint fails (e.g. mock token)
-        _dashboard = {'unreadNotifications': 0, 'xp': 0};
+        _dashboard = null;
       }
 
       if (enrollResp.statusCode == 200) {
@@ -148,10 +147,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _header() {
     final auth = context.watch<AuthProvider>();
-    final fullName = auth.userName ?? 'Bianca Juliette';
+    final fullName = (auth.userName?.isNotEmpty == true) ? auth.userName! : 'Student';
     final firstName = fullName.split(' ').first;
     final unread = _dashboard?['unreadNotificationsCount'] ?? 0;
-    final initials = firstName.isNotEmpty ? firstName[0].toUpperCase() : 'B';
+    final initials = firstName.isNotEmpty ? firstName[0].toUpperCase() : 'S';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -313,17 +312,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // Recommended course card matching Dream Theme Screen 1
   Widget _recommendedCard() {
-    final course = _courses.isNotEmpty ? _courses.first : {
-      'title': 'Marketing Business Management',
-      'category': 'Business Management',
-      'instructor': 'Jerremy Mamika',
-      'price': 48,
-    };
+    if (_courses.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: const Center(
+            child: Text('No recommended courses available right now.',
+                style: TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+          ),
+        ),
+      );
+    }
 
-    final title = course['title'] ?? 'Marketing Business Management';
-    final category = course['category'] ?? course['categorySlug'] ?? 'Business Management';
-    final instructor = course['instructorName'] ?? course['instructor'] ?? 'Jerremy Mamika';
-    final price = course['price'] ?? 48;
+    final course = _courses.first;
+    final title = course['title'] ?? 'Course';
+    final category = course['category'] ?? course['categorySlug'] ?? 'General';
+    final instructor = course['instructorName'] ?? course['instructor'] ?? 'Instructor';
+    final price = course['price'] ?? 0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),

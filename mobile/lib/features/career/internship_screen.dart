@@ -21,63 +21,7 @@ class _InternshipScreenState extends State<InternshipScreen> {
   bool _loading = true;
   String? _error;
   String _selectedPill = 'All';
-  String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
-
-  static const List<Map<String, dynamic>> _defaultInternships = [
-    {
-      'id': 'int_1',
-      'title': 'Frontend Developer Intern',
-      'companyName': 'Google Cloud Solutions',
-      'location': 'Bangalore (Hybrid)',
-      'stipend': '₹35,000 / mo',
-      'duration': '6 Months',
-      'type': 'INTERNSHIP',
-      'workMode': 'Hybrid',
-      'skills': ['React.js', 'TypeScript', 'Tailwind'],
-      'description': 'Work with world-class engineering teams to build modern cloud dashboard components.',
-      'postedDaysAgo': '2 days ago',
-    },
-    {
-      'id': 'int_2',
-      'title': 'Flutter Mobile App Intern',
-      'companyName': 'Razorpay Technologies',
-      'location': 'Remote',
-      'stipend': '₹40,000 / mo',
-      'duration': '3 Months',
-      'type': 'INTERNSHIP',
-      'workMode': 'Remote',
-      'skills': ['Flutter', 'Dart', 'REST APIs', 'State Management'],
-      'description': 'Help engineer next-gen mobile payment checkout screens and transaction dashboards.',
-      'postedDaysAgo': 'Just now',
-    },
-    {
-      'id': 'int_3',
-      'title': 'Backend Java Spring Developer',
-      'companyName': 'Atlassian India',
-      'location': 'Bengaluru, KA',
-      'stipend': '₹45,000 / mo',
-      'duration': '6 Months',
-      'type': 'INTERNSHIP',
-      'workMode': 'On-site',
-      'skills': ['Java 17', 'Spring Boot', 'PostgreSQL', 'Docker'],
-      'description': 'Develop scalable REST microservices and automated deployment pipelines.',
-      'postedDaysAgo': '1 day ago',
-    },
-    {
-      'id': 'int_4',
-      'title': 'AI / ML Engineer Intern',
-      'companyName': 'Microsoft AI Labs',
-      'location': 'Hyderabad (Remote)',
-      'stipend': '₹50,000 / mo',
-      'duration': '6 Months',
-      'type': 'INTERNSHIP',
-      'workMode': 'Remote',
-      'skills': ['Python', 'PyTorch', 'LLMs', 'LangChain'],
-      'description': 'Build fine-tuned AI models and conversational intelligent tutor agents.',
-      'postedDaysAgo': '3 days ago',
-    },
-  ];
 
   @override
   void initState() {
@@ -98,22 +42,25 @@ class _InternshipScreenState extends State<InternshipScreen> {
         } else if (rawData is Map && rawData['content'] is List) {
           list = rawData['content'];
         }
-        if (list.isEmpty) list = List.from(_defaultInternships);
         _allInternships = List.from(list);
         _filterInternships();
         setState(() => _loading = false);
       } else {
-        _setFallback();
+        _allInternships = [];
+        _filterInternships();
+        setState(() {
+          _loading = false;
+          _error = 'Failed to load internships.';
+        });
       }
     } catch (_) {
-      _setFallback();
+      _allInternships = [];
+      _filterInternships();
+      setState(() {
+        _loading = false;
+        _error = 'Network error loading internships.';
+      });
     }
-  }
-
-  void _setFallback() {
-    _allInternships = List.from(_defaultInternships);
-    _filterInternships();
-    setState(() => _loading = false);
   }
 
   void _filterInternships() {

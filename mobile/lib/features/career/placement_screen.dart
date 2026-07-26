@@ -21,63 +21,8 @@ class _PlacementScreenState extends State<PlacementScreen> with SingleTickerProv
   List<dynamic> _jobs = [];
   List<dynamic> _applications = [];
   final Set<String> _appliedJobIds = {};
-  bool _loadingJobs = true;
-  bool _loadingApps = true;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
-
-  static const List<Map<String, dynamic>> _defaultJobs = [
-    {
-      'id': 'job_1',
-      'title': 'Senior Software Engineer (Full Stack)',
-      'companyName': 'Goldman Sachs',
-      'location': 'Bengaluru, KA',
-      'salary': '18 - 24 LPA',
-      'jobType': 'Full-time',
-      'workMode': 'Hybrid',
-      'skills': ['Java', 'Spring Boot', 'React', 'Kafka'],
-      'description': 'Engineers will design high-throughput financial trading systems and real-time ledger engines.',
-    },
-    {
-      'id': 'job_2',
-      'title': 'Flutter Lead Architect',
-      'companyName': 'Swiggy Tech',
-      'location': 'Bangalore (Hybrid)',
-      'salary': '22 - 30 LPA',
-      'jobType': 'Full-time',
-      'workMode': 'Hybrid',
-      'skills': ['Flutter', 'Dart', 'CI/CD', 'BLoC Pattern'],
-      'description': 'Drive architecture for consumer-facing super apps serving millions of active orders daily.',
-    },
-    {
-      'id': 'job_3',
-      'title': 'DevOps & Cloud Systems Specialist',
-      'companyName': 'Amazon Web Services',
-      'location': 'Hyderabad, TS',
-      'salary': '20 - 28 LPA',
-      'jobType': 'Full-time',
-      'workMode': 'On-site',
-      'skills': ['AWS', 'Kubernetes', 'Terraform', 'Python'],
-      'description': 'Build automated cloud infrastructure blueprints and resilient container orchestrations.',
-    },
-  ];
-
-  static const List<Map<String, dynamic>> _defaultApplications = [
-    {
-      'id': 'app_101',
-      'jobTitle': 'Senior Software Engineer (Full Stack)',
-      'companyName': 'Goldman Sachs',
-      'status': 'SHORTLISTED',
-      'appliedAt': 'July 22, 2026',
-    },
-    {
-      'id': 'app_102',
-      'jobTitle': 'Backend Java Microservices Engineer',
-      'companyName': 'Flipkart',
-      'status': 'UNDER_REVIEW',
-      'appliedAt': 'July 18, 2026',
-    },
-  ];
 
   @override
   void initState() {
@@ -106,26 +51,19 @@ class _PlacementScreenState extends State<PlacementScreen> with SingleTickerProv
         } else if (rawData is Map && rawData['content'] is List) {
           list = rawData['content'];
         }
-        final filtered = list.where((j) => (j['type'] ?? '').toString() != 'INTERNSHIP').toList();
-        if (filtered.isEmpty) {
-          _allJobs = List.from(_defaultJobs);
-        } else {
-          _allJobs = filtered;
-        }
+        _allJobs = list.where((j) => (j['type'] ?? '').toString() != 'INTERNSHIP').toList();
         _filterJobs();
         setState(() => _loadingJobs = false);
       } else {
-        _setJobsFallback();
+        _allJobs = [];
+        _filterJobs();
+        setState(() => _loadingJobs = false);
       }
     } catch (_) {
-      _setJobsFallback();
+      _allJobs = [];
+      _filterJobs();
+      setState(() => _loadingJobs = false);
     }
-  }
-
-  void _setJobsFallback() {
-    _allJobs = List.from(_defaultJobs);
-    _filterJobs();
-    setState(() => _loadingJobs = false);
   }
 
   void _filterJobs() {
@@ -155,20 +93,19 @@ class _PlacementScreenState extends State<PlacementScreen> with SingleTickerProv
         } else if (rawData is Map && rawData['content'] is List) {
           list = rawData['content'];
         }
-        if (list.isEmpty) list = List.from(_defaultApplications);
         setState(() {
           _applications = list;
           _loadingApps = false;
         });
       } else {
         setState(() {
-          _applications = List.from(_defaultApplications);
+          _applications = [];
           _loadingApps = false;
         });
       }
     } catch (_) {
       setState(() {
-        _applications = List.from(_defaultApplications);
+        _applications = [];
         _loadingApps = false;
       });
     }

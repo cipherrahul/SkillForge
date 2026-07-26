@@ -36,30 +36,6 @@ class _LiveClassScreenState extends State<LiveClassScreen>
     super.dispose();
   }
 
-  static const List<Map<String, dynamic>> _defaultSessions = [
-    {
-      'id': 'ls1',
-      'title': 'Live Q&A: System Design & Microservices Best Practices',
-      'instructorName': 'Dr. Aris Thorne',
-      'scheduledAt': 'Today at 6:00 PM',
-      'status': 'LIVE',
-    },
-    {
-      'id': 'ls2',
-      'title': 'Flutter 3.x State Management Workshop (Provider & Riverpod)',
-      'instructorName': 'Sophia Chen',
-      'scheduledAt': 'Tomorrow at 4:00 PM',
-      'status': 'SCHEDULED',
-    },
-    {
-      'id': 'ls3',
-      'title': 'Building Scalable APIs with Spring Boot 3 & GraphQL',
-      'instructorName': 'Marcus Vance',
-      'scheduledAt': 'Yesterday at 5:00 PM',
-      'status': 'COMPLETED',
-    },
-  ];
-
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
@@ -73,9 +49,6 @@ class _LiveClassScreenState extends State<LiveClassScreen>
         } else if (rawData is Map && rawData['content'] is List) {
           all = rawData['content'];
         }
-        if (all.isEmpty) {
-          all = List.from(_defaultSessions);
-        }
         setState(() {
           _upcoming = all.where((s) {
             final status = s['status']?.toString() ?? '';
@@ -88,20 +61,21 @@ class _LiveClassScreenState extends State<LiveClassScreen>
           _loading = false;
         });
       } else {
-        _setFallbackSessions();
+        setState(() {
+          _upcoming = [];
+          _past = [];
+          _loading = false;
+          _error = 'Failed to fetch live sessions from backend.';
+        });
       }
     } catch (_) {
-      _setFallbackSessions();
+      setState(() {
+        _upcoming = [];
+        _past = [];
+        _loading = false;
+        _error = 'Network error loading live sessions.';
+      });
     }
-  }
-
-  void _setFallbackSessions() {
-    final all = List.from(_defaultSessions);
-    setState(() {
-      _upcoming = all.where((s) => s['status'] == 'SCHEDULED' || s['status'] == 'LIVE').toList();
-      _past = all.where((s) => s['status'] == 'COMPLETED').toList();
-      _loading = false;
-    });
   }
 
   String _selectedCategoryPill = 'All Video';

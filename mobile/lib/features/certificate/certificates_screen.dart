@@ -17,29 +17,7 @@ class CertificatesScreen extends StatefulWidget {
 class _CertificatesScreenState extends State<CertificatesScreen> {
   List<dynamic> _certs = [];
   bool _loading = true;
-  String? _error;
   final TextEditingController _verifyController = TextEditingController();
-
-  static const List<Map<String, dynamic>> _defaultCertificates = [
-    {
-      'id': 'cert_001',
-      'courseTitle': 'Full-Stack Web Development Masterclass',
-      'recipientName': 'Rahul Sharma',
-      'verificationCode': 'CERT-SKILL-9842',
-      'issuedAt': 'July 20, 2026',
-      'instructorName': 'Dr. Aris Thorne',
-      'score': '98%',
-    },
-    {
-      'id': 'cert_002',
-      'courseTitle': 'Flutter & Dart: Cross-Platform Mobile Guide',
-      'recipientName': 'Rahul Sharma',
-      'verificationCode': 'CERT-SKILL-7721',
-      'issuedAt': 'June 15, 2026',
-      'instructorName': 'Sophia Chen',
-      'score': '95%',
-    },
-  ];
 
   @override
   void initState() {
@@ -78,23 +56,22 @@ class _CertificatesScreenState extends State<CertificatesScreen> {
           }
         }
 
-        if (certs.isEmpty) {
-          _certs = List.from(_defaultCertificates);
-        } else {
-          _certs = certs;
-        }
+        _certs = certs;
         setState(() => _loading = false);
       } else {
-        _setFallback();
+        setState(() {
+          _certs = [];
+          _loading = false;
+          _error = 'Failed to load certificates.';
+        });
       }
     } catch (_) {
-      _setFallback();
+      setState(() {
+        _certs = [];
+        _loading = false;
+        _error = 'Network error loading certificates.';
+      });
     }
-  }
-
-  void _setFallback() {
-    _certs = List.from(_defaultCertificates);
-    setState(() => _loading = false);
   }
 
   void _showVerifyDialog() {

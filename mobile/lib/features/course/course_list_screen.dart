@@ -27,53 +27,6 @@ class _CourseListScreenState extends State<CourseListScreen> {
     _load();
   }
 
-  static const List<Map<String, dynamic>> _defaultCourses = [
-    {
-      'id': '1',
-      'title': 'Full-Stack Web Development (React & Node.js)',
-      'description': 'Master modern web development from scratch with hands-on projects.',
-      'price': 4999,
-      'durationHours': 48,
-      'level': 'Beginner',
-      'category': 'Web Development',
-      'averageRating': 4.8,
-      'thumbnailUrl': '',
-    },
-    {
-      'id': '2',
-      'title': 'Flutter & Dart: Complete Cross-Platform Guide',
-      'description': 'Build beautiful mobile and web applications with Flutter.',
-      'price': 3499,
-      'durationHours': 32,
-      'level': 'Intermediate',
-      'category': 'Mobile Development',
-      'averageRating': 4.9,
-      'thumbnailUrl': '',
-    },
-    {
-      'id': '3',
-      'title': 'Java Spring Boot & Microservices Architecture',
-      'description': 'Enterprise backend development using Spring Boot and Docker.',
-      'price': 5999,
-      'durationHours': 60,
-      'level': 'Advanced',
-      'category': 'Backend Architecture',
-      'averageRating': 4.7,
-      'thumbnailUrl': '',
-    },
-    {
-      'id': '4',
-      'title': 'Python Data Science & Machine Learning Masterclass',
-      'description': 'Learn NumPy, Pandas, Scikit-Learn, and Deep Learning models.',
-      'price': 3999,
-      'durationHours': 40,
-      'level': 'All Levels',
-      'category': 'Data Science',
-      'averageRating': 4.8,
-      'thumbnailUrl': '',
-    },
-  ];
-
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
@@ -88,21 +41,18 @@ class _CourseListScreenState extends State<CourseListScreen> {
         } else if (rawData is Map && rawData['content'] is List) {
           list = rawData['content'];
         }
-        if (list.isEmpty) {
-          list = List.from(_defaultCourses);
-        }
         _allCourses = List.from(list);
         _filterCourses(_searchQuery);
         setState(() => _loading = false);
       } else {
-        _allCourses = List.from(_defaultCourses);
+        _allCourses = [];
         _filterCourses(_searchQuery);
-        setState(() => _loading = false);
+        setState(() { _loading = false; _error = 'Failed to load courses from backend.'; });
       }
     } catch (_) {
-      _allCourses = List.from(_defaultCourses);
+      _allCourses = [];
       _filterCourses(_searchQuery);
-      setState(() => _loading = false);
+      setState(() { _loading = false; _error = 'Network error. Please check backend server.'; });
     }
   }
 

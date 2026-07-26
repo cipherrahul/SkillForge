@@ -27,30 +27,6 @@ class _ProgressScreenState extends State<ProgressScreen> {
     _load();
   }
 
-  static const List<Map<String, dynamic>> _defaultEnrollments = [
-    {
-      'id': 'en1',
-      'courseTitle': 'Full-Stack Web Development (React & Node.js)',
-      'progressPercent': 75,
-      'completedLessons': 18,
-      'totalLessons': 24,
-    },
-    {
-      'id': 'en2',
-      'courseTitle': 'Flutter & Dart: Complete Cross-Platform Guide',
-      'progressPercent': 100,
-      'completedLessons': 30,
-      'totalLessons': 30,
-    },
-    {
-      'id': 'en3',
-      'courseTitle': 'Java Spring Boot & Microservices Architecture',
-      'progressPercent': 40,
-      'completedLessons': 10,
-      'totalLessons': 25,
-    },
-  ];
-
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
@@ -64,23 +40,22 @@ class _ProgressScreenState extends State<ProgressScreen> {
         } else if (rawData is Map && rawData['content'] is List) {
           list = rawData['content'];
         }
-        if (list.isEmpty) {
-          list = List.from(_defaultEnrollments);
-        }
         setState(() {
           _enrollments = list;
           _loading = false;
         });
       } else {
         setState(() {
-          _enrollments = List.from(_defaultEnrollments);
+          _enrollments = [];
           _loading = false;
+          _error = 'Failed to load progress from backend.';
         });
       }
     } catch (_) {
       setState(() {
-        _enrollments = List.from(_defaultEnrollments);
+        _enrollments = [];
         _loading = false;
+        _error = 'Network error loading progress.';
       });
     }
   }
@@ -364,6 +339,54 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 24),
+            const Text('Enrolled Courses Progress',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+            const SizedBox(height: 12),
+            if (_loading)
+              _shimmer()
+            else if (_error != null)
+              _errorState()
+            else if (_enrollments.isEmpty)
+              _emptyState()
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _enrollments.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (ctx, idx) {
+                  final item = _enrollments[idx];
+                  final title = item['courseTitle'] ?? item['course']?['title'] ?? 'Course';
+                  final progress = (item['progressPercent'] ?? item['progress'] ?? 0).toInt();
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                        const SizedBox(height: 8),
+                        LinearPercentIndicator(
+                          lineHeight: 8,
+                          percent: (progress / 100).clamp(0.0, 1.0),
+                          backgroundColor: const Color(0xFFF1F5F9),
+                          progressColor: AppTheme.primary,
+                          barRadius: const Radius.circular(4),
+                          padding: EdgeInsets.zero,
+                        ),
+                        const SizedBox(height: 6),
+                        Text('$progress% Completed',
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                      ],
+                    ),
+                  );
+                },
+              ),
           ],
         ),
       ),
