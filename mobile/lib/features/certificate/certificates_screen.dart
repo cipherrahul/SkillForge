@@ -17,6 +17,7 @@ class CertificatesScreen extends StatefulWidget {
 class _CertificatesScreenState extends State<CertificatesScreen> {
   List<dynamic> _certs = [];
   bool _loading = true;
+  String? _error;
   final TextEditingController _verifyController = TextEditingController();
 
   @override

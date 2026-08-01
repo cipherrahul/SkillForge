@@ -21,6 +21,7 @@ class _InternshipScreenState extends State<InternshipScreen> {
   bool _loading = true;
   String? _error;
   String _selectedPill = 'All';
+  String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
   @override

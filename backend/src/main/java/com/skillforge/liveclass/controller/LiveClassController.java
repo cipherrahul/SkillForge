@@ -43,6 +43,16 @@ public class LiveClassController {
         return ResponseEntity.ok(ApiResponse.success("Live sessions loaded", response, servletRequest.getRequestURI()));
     }
 
+    // Global live-sessions endpoint for instructor dashboard and student app
+    // Returns all sessions accessible to the current user (their enrolled/created courses)
+    @GetMapping("/api/v1/live-sessions")
+    public ResponseEntity<ApiResponse<List<LiveSessionResponse>>> getAllLiveSessions(HttpServletRequest servletRequest,
+                                                                                     Principal principal) {
+        UserEntity currentUser = courseService.getCurrentUser(principal);
+        List<LiveSessionResponse> response = liveClassService.getAllLiveSessionsForUser(currentUser);
+        return ResponseEntity.ok(ApiResponse.success("All live sessions loaded", response, servletRequest.getRequestURI()));
+    }
+
     @PostMapping("/api/v1/live-sessions/{sessionId}/join")
     public ResponseEntity<ApiResponse<AttendanceResponse>> joinSession(@PathVariable String sessionId,
                                                                        HttpServletRequest servletRequest,

@@ -22,6 +22,8 @@ class _PlacementScreenState extends State<PlacementScreen> with SingleTickerProv
   List<dynamic> _applications = [];
   final Set<String> _appliedJobIds = {};
   String _searchQuery = '';
+  bool _loadingJobs = true;
+  bool _loadingApps = true;
   final TextEditingController _searchController = TextEditingController();
 
   @override

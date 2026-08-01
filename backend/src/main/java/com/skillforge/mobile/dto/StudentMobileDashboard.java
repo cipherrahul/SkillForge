@@ -1,5 +1,7 @@
 package com.skillforge.mobile.dto;
 
+import com.skillforge.course.dto.CourseResponse;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -8,6 +10,7 @@ public record StudentMobileDashboard(
         String nextLiveClassTitle,
         Instant nextLiveClassTime,
         long unreadNotificationsCount,
-        int statsXp
+        int statsXp,
+        List<CourseResponse> recentCourses
 ) {
 }

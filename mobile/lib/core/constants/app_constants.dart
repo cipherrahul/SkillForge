@@ -38,6 +38,8 @@ class AppConstants {
   // lessonId-specific: '$baseUrl/ai/lessons/{lessonId}/generate-quiz'
   // lessonId-specific: '$baseUrl/ai/lessons/{lessonId}/generate-notes'
   static const String aiRoadmapUrl       = '$baseUrl/ai/roadmap';
+  static const String aiAtsMatchUrl      = '$baseUrl/ai/ats-resume-match';
+  static const String aiCodeReviewUrl    = '$baseUrl/ai/code-review';
 
   // ─── Assessment (AssessmentController) ───────────────────────────────────
   // courseId-specific: '$baseUrl/courses/{courseId}/assessments'
@@ -71,6 +73,7 @@ class AppConstants {
 
   // ─── Playground (PlaygroundController) ───────────────────────────────────
   static const String playgroundRunUrl   = '$baseUrl/playground/run';
+  static const String playgroundTestUrl  = '$baseUrl/playground/test-runner';
 
   // ─── Mobile (MobileController) ────────────────────────────────────────────
   static const String registerDeviceUrl      = '$baseUrl/mobile/devices';

@@ -170,4 +170,44 @@ public class AnalyticsService {
 
         return csv.toString();
     }
+
+    /**
+     * Instructor-specific revenue report for the web dashboard.
+     * Calculates gross sales, instructor share (70%), platform fee (30%)
+     * and returns payout history from real orders.
+     */
+    public InstructorRevenueResponse getInstructorRevenue(UserEntity instructor) {
+        // Get all courses by this instructor
+        List<CourseEntity> instructorCourses = courseRepository.findByInstructorEmail(instructor.getEmail());
+        List<UUID> courseIds = instructorCourses.stream().map(CourseEntity::getId).toList();
+
+        // Get all completed orders for those courses
+        List<OrderEntity> completedOrders = orderRepository.findAll().stream()
+                .filter(o -> !o.isDeleted()
+                        && o.getStatus() == OrderStatus.COMPLETED
+                        && o.getCourseId() != null
+                        && courseIds.contains(o.getCourseId()))
+                .toList();
+
+        double grossSales = completedOrders.stream().mapToDouble(OrderEntity::getAmount).sum();
+        double instructorShare = grossSales * 0.70;
+        double platformFee = grossSales * 0.30;
+        long totalOrders = completedOrders.size();
+
+        // Build payout history from orders (one entry per order)
+        List<InstructorRevenueResponse.PayoutEntry> payouts = completedOrders.stream()
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .limit(20)
+                .map(o -> new InstructorRevenueResponse.PayoutEntry(
+                        o.getId().toString(),
+                        o.getCreatedAt().toString(),
+                        o.getAmount() * 0.70,
+                        "PROCESSED",
+                        "Platform Payment"
+                ))
+                .toList();
+
+        return new InstructorRevenueResponse(grossSales, instructorShare, platformFee, totalOrders, payouts);
+    }
 }
+

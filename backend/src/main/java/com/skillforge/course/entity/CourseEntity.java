@@ -7,7 +7,10 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "courses")
+@Table(name = "courses", indexes = {
+    @Index(name = "idx_course_cat_pub", columnList = "categorySlug, published"),
+    @Index(name = "idx_course_inst", columnList = "instructorEmail")
+})
 public class CourseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

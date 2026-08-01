@@ -18,6 +18,7 @@ import com.skillforge.community.entity.UserStatsEntity;
 import com.skillforge.community.repository.UserStatsRepository;
 import com.skillforge.payment.entity.InstructorRevenueEntity;
 import com.skillforge.payment.repository.InstructorRevenueRepository;
+import com.skillforge.course.service.CourseService;
 import com.skillforge.mobile.dto.*;
 import com.skillforge.mobile.entity.*;
 import com.skillforge.mobile.repository.*;
@@ -38,6 +39,7 @@ public class MobileService {
     private final AssessmentRepository assessmentRepository;
     private final SubmissionRepository submissionRepository;
     private final InstructorRevenueRepository instructorRevenueRepository;
+    private final CourseService courseService;
 
     public MobileService(MobileDeviceRepository mobileDeviceRepository,
                          MobileNotificationRepository mobileNotificationRepository,
@@ -47,7 +49,8 @@ public class MobileService {
                          UserStatsRepository userStatsRepository,
                          AssessmentRepository assessmentRepository,
                          SubmissionRepository submissionRepository,
-                         InstructorRevenueRepository instructorRevenueRepository) {
+                         InstructorRevenueRepository instructorRevenueRepository,
+                         CourseService courseService) {
         this.mobileDeviceRepository = mobileDeviceRepository;
         this.mobileNotificationRepository = mobileNotificationRepository;
         this.enrollmentRepository = enrollmentRepository;
@@ -57,6 +60,7 @@ public class MobileService {
         this.assessmentRepository = assessmentRepository;
         this.submissionRepository = submissionRepository;
         this.instructorRevenueRepository = instructorRevenueRepository;
+        this.courseService = courseService;
     }
 
     @Transactional
@@ -125,12 +129,16 @@ public class MobileService {
                 .map(UserStatsEntity::getXpPoints)
                 .orElse(0);
 
+        List<com.skillforge.course.dto.CourseResponse> recentCourses = courseService.searchCourses(
+                new com.skillforge.course.dto.CourseSearchRequest(null, null, null, null, null, null, "createdat_desc"), currentUser);
+
         return new StudentMobileDashboard(
                 enrolledTitles,
                 nextLive != null ? nextLive.getTitle() : null,
                 nextLive != null ? nextLive.getStartTime() : null,
                 unreadNotifications,
-                xp
+                xp,
+                recentCourses
         );
     }
 
@@ -197,6 +205,7 @@ public class MobileService {
         return new OfflineManifestResponse(courseId, course.getTitle(), downloads);
     }
 
+    @org.springframework.scheduling.annotation.Async("taskExecutor")
     @Transactional
     public void sendPushNotification(SendTestPushRequest request, UserEntity sender) {
         String email = request.userEmail() != null ? request.userEmail() : sender.getEmail();

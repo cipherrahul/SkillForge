@@ -114,6 +114,29 @@ public class LiveClassService {
                 .toList();
     }
 
+    /**
+     * Returns live sessions for all courses relevant to the current user.
+     * - INSTRUCTOR: all sessions across their created courses
+     * - STUDENT: all sessions across their enrolled courses
+     */
+    public List<LiveSessionResponse> getAllLiveSessionsForUser(UserEntity currentUser) {
+        List<UUID> courseIds;
+        // Check if instructor: find courses they created
+        List<CourseEntity> instructorCourses = courseRepository.findByInstructorEmail(currentUser.getEmail());
+        if (!instructorCourses.isEmpty()) {
+            courseIds = instructorCourses.stream().map(CourseEntity::getId).toList();
+        } else {
+            // Student: find enrolled courses
+            List<EnrollmentEntity> enrollments = enrollmentRepository.findByUserEmail(currentUser.getEmail());
+            courseIds = enrollments.stream().map(EnrollmentEntity::getCourseId).toList();
+        }
+        if (courseIds.isEmpty()) return List.of();
+        return liveSessionRepository.findByCourseIdIn(courseIds).stream()
+                .filter(s -> !s.isDeleted())
+                .map(this::mapSession)
+                .toList();
+    }
+
     @Transactional
     public AttendanceResponse joinSession(UUID sessionId, UserEntity currentUser) {
         LiveSessionEntity session = liveSessionRepository.findById(sessionId)

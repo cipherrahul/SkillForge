@@ -60,7 +60,7 @@ public class AssessmentController {
         return ResponseEntity.ok(ApiResponse.success("Submissions loaded", response, servletRequest.getRequestURI()));
     }
 
-    @PutMapping("/api/v1/submissions/{submissionId}/grade")
+    @PutMapping({"/api/v1/submissions/{submissionId}/grade", "/api/v1/assessments/{assessmentId}/submissions/{submissionId}/grade"})
     public ResponseEntity<ApiResponse<SubmissionResponse>> gradeSubmission(@PathVariable String submissionId,
                                                                            @Valid @RequestBody GradeSubmissionRequest request,
                                                                            HttpServletRequest servletRequest,
@@ -70,3 +70,4 @@ public class AssessmentController {
         return ResponseEntity.ok(ApiResponse.success("Submission graded successfully", response, servletRequest.getRequestURI()));
     }
 }
+

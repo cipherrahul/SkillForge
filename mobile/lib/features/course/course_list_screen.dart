@@ -244,7 +244,7 @@ class _CourseTile extends StatelessWidget {
     final title = course['title'] ?? 'Untitled Course';
     final price = course['price'] ?? 0;
     final category = course['category'] ?? course['categorySlug'] ?? 'Online Learning';
-    final instructor = course['instructorName'] ?? course['instructor'] ?? 'Jerremy Mamika';
+    final instructor = course['instructorName'] ?? course['instructor'] ?? 'Instructor';
 
     return GestureDetector(
       onTap: () => Navigator.push(context,

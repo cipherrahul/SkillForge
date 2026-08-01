@@ -40,6 +40,16 @@ public class AnalyticsController {
         return ResponseEntity.ok(ApiResponse.success("Platform revenue metrics loaded", response, servletRequest.getRequestURI()));
     }
 
+    // Instructor-specific revenue report (used by web instructor dashboard)
+    // Returns gross sales, instructor 70% share, platform 30% fee for the authenticated instructor
+    @GetMapping("/api/v1/reports/instructor/revenue")
+    public ResponseEntity<ApiResponse<InstructorRevenueResponse>> getInstructorRevenue(HttpServletRequest servletRequest,
+                                                                                        Principal principal) {
+        UserEntity currentUser = courseService.getCurrentUser(principal);
+        InstructorRevenueResponse response = analyticsService.getInstructorRevenue(currentUser);
+        return ResponseEntity.ok(ApiResponse.success("Instructor revenue report loaded", response, servletRequest.getRequestURI()));
+    }
+
     @GetMapping("/api/v1/analytics/students")
     public ResponseEntity<ApiResponse<StudentAnalyticsResponse>> getStudentAnalytics(HttpServletRequest servletRequest) {
         StudentAnalyticsResponse response = analyticsService.getStudentAnalytics();

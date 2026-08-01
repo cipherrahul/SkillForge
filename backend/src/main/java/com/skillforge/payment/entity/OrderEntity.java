@@ -28,6 +28,8 @@ public class OrderEntity {
     @Column(nullable = false)
     private OrderStatus status = OrderStatus.PENDING;
 
+    private String idempotencyKey;
+
     private String transactionId;
 
     private String couponCode;
@@ -50,6 +52,8 @@ public class OrderEntity {
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
+    public String getIdempotencyKey() { return idempotencyKey; }
+    public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
     public String getUserEmail() { return userEmail; }
     public void setUserEmail(String userEmail) { this.userEmail = userEmail; }
     public UUID getCourseId() { return courseId; }

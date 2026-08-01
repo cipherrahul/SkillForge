@@ -51,7 +51,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final results = await Future.wait([
         ApiClient.get(AppConstants.studentDashboardUrl).catchError((_) => http.Response('{}', 401)),
         ApiClient.get(AppConstants.enrollmentsUrl).catchError((_) => http.Response('{}', 401)),
-        ApiClient.get('${AppConstants.coursesUrl}?size=6&sort=enrolledCount,desc').catchError((_) => http.Response('{}', 500)),
+        ApiClient.get('${AppConstants.coursesUrl}?sortBy=createdat_desc').catchError((_) => http.Response('{}', 500)),
       ]);
 
       final dashResp = results[0];
@@ -114,7 +114,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 SliverToBoxAdapter(child: _exploreTopics()),
 
-                // 2. Recommended for you section
+                // 2. 🔥 Recent Instructor Uploads Feed (High Purchase Conversion)
+                const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                SliverToBoxAdapter(
+                  child: _sectionHeader('🔥 New Instructor Uploads',
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseListScreen()))),
+                ),
+                SliverToBoxAdapter(child: _recentUploadedCoursesFeed()),
+
+                // 3. Recommended for you section
                 const SliverToBoxAdapter(child: SizedBox(height: 8)),
                 SliverToBoxAdapter(
                   child: _sectionHeader('Recommended for you',
@@ -122,14 +130,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 SliverToBoxAdapter(child: _recommendedCard()),
 
-                // 3. Continue Learning / Schedule
+                // 4. Continue Learning / Schedule
                 if (_enrollments.isNotEmpty) ...[
                   SliverToBoxAdapter(child: _sectionHeader('Continue Learning',
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseListScreen())))),
                   SliverToBoxAdapter(child: _continueLearning()),
                 ],
 
-                // 4. Study Statistics snippet
+                // 5. Study Statistics snippet
                 SliverToBoxAdapter(
                   child: _sectionHeader('My Statistic',
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProgressScreen()))),
@@ -310,6 +318,110 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // 🔥 Recent Instructor Uploads Horizontal Feed
+  Widget _recentUploadedCoursesFeed() {
+    final recentList = (_dashboard?['recentCourses'] is List && (_dashboard!['recentCourses'] as List).isNotEmpty)
+        ? (_dashboard!['recentCourses'] as List)
+        : _courses;
+
+    if (recentList.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: const Center(
+            child: Text('No new instructor courses uploaded yet.',
+                style: TextStyle(color: Color(0xFF64748B), fontSize: 13)),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 200,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        scrollDirection: Axis.horizontal,
+        itemCount: recentList.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 16),
+        itemBuilder: (ctx, i) {
+          final c = recentList[i];
+          final title = c['title']?.toString() ?? 'New Course';
+          final instructor = c['instructorName']?.toString() ?? c['instructorEmail']?.toString() ?? 'Verified Instructor';
+          final price = c['price'] ?? 0;
+          final category = (c['categorySlug'] ?? c['category'] ?? 'Tech').toString();
+          final courseId = c['id']?.toString();
+
+          return GestureDetector(
+            onTap: () {
+              if (courseId != null) {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => CourseDetailScreen(courseId: courseId)));
+              } else {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const CourseListScreen()));
+              }
+            },
+            child: Container(
+              width: 250,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
+                ],
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text('🔥 NEW UPLOAD', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFFD97706))),
+                      ),
+                      Text(category.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.primary)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(title, maxLines: 2, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0F172A))),
+                  const SizedBox(height: 6),
+                  Text('By $instructor', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                  const Spacer(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('₹$price', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: AppTheme.primary)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text('Enroll Now', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   // Recommended course card matching Dream Theme Screen 1
   Widget _recommendedCard() {
     if (_courses.isEmpty) {
@@ -421,8 +533,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Statistics Card matching Dream Theme Screen 2
+  // Statistics Card – populated from real backend data
   Widget _statisticsSnippetCard() {
+    // Pull real values from backend: enrolled courses and XP
+    final enrolledCount = _enrollments.length;
+    final xp = _dashboard?['statsXp'] ?? 0;
+    final completedCount = _enrollments.where((e) => e['completed'] == true).length;
+    final inProgressCount = enrolledCount - completedCount;
+
+    // Don't render the card if there's no data to show
+    if (enrolledCount == 0 && xp == 0) return const SizedBox.shrink();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -439,21 +560,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('2 Days', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
-                      const Text('Current Record', style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w500)),
+                      Text('$enrolledCount Courses',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+                      const Text('Enrolled Total', style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w500)),
                       const SizedBox(height: 12),
                       Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                            child: const Text('4 Lesson', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.purpleAccent)),
+                            child: Text('$inProgressCount Active', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.purpleAccent)),
                           ),
                           const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                            child: const Text('8 Challenges', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.purpleAccent)),
+                            child: Text('$completedCount Done', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.purpleAccent)),
                           ),
                         ],
                       ),
@@ -472,21 +594,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('3 Days', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
-                      const Text('Current Record', style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w500)),
+                      Text('$xp XP', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+                      const Text('Total Points Earned', style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w500)),
                       const SizedBox(height: 12),
                       Row(
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                            child: const Text('7 Lesson', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.greenAccent)),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                            child: const Text('11 Challenges', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.greenAccent)),
+                            child: const Text('My Score', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.greenAccent)),
                           ),
                         ],
                       ),
@@ -500,6 +616,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
+
 
   // Colors per course index
   static const List<List<Color>> _courseColors = [

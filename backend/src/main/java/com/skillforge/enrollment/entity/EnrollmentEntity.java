@@ -9,6 +9,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "enrollments", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"userEmail", "courseId"})
+}, indexes = {
+        @Index(name = "idx_enrollment_user_course", columnList = "userEmail, courseId")
 })
 public class EnrollmentEntity {
     @Id

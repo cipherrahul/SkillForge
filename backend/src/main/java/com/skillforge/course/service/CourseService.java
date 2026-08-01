@@ -9,6 +9,8 @@ import com.skillforge.common.exception.UnauthorizedException;
 import com.skillforge.course.dto.*;
 import com.skillforge.course.entity.*;
 import com.skillforge.course.repository.*;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import com.skillforge.enrollment.service.EnrollmentService;
 
@@ -64,6 +66,7 @@ public class CourseService {
         return userRepository.findByEmail(principal.getName());
     }
 
+    @CacheEvict(value = "categories", allEntries = true)
     public CategoryResponse createCategory(CreateCategoryRequest request) {
         String slug = request.name().trim().toLowerCase().replaceAll("\\s+", "-");
         if (categoryRepository.existsBySlug(slug)) {
@@ -78,6 +81,7 @@ public class CourseService {
         return new CategoryResponse(saved.getId(), saved.getName(), saved.getSlug(), saved.getDescription());
     }
 
+    @Cacheable(value = "categories")
     public List<CategoryResponse> listCategories() {
         return categoryRepository.findAll().stream()
                 .filter(cat -> !cat.isDeleted())

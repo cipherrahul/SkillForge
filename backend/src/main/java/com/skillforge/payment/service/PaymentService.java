@@ -60,6 +60,18 @@ public class PaymentService {
 
     @Transactional
     public OrderResponse checkout(CheckoutRequest request, UserEntity currentUser) {
+        return checkoutWithIdempotency(request, currentUser, null);
+    }
+
+    @Transactional
+    public OrderResponse checkoutWithIdempotency(CheckoutRequest request, UserEntity currentUser, String idempotencyKey) {
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            Optional<OrderEntity> existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey.trim());
+            if (existingOrder.isPresent()) {
+                return mapOrder(existingOrder.get());
+            }
+        }
+
         if ((request.courseId() != null && request.subscriptionPlanId() != null) ||
                 (request.courseId() == null && request.subscriptionPlanId() == null)) {
             throw new BadRequestException("Provide either courseId or subscriptionPlanId");
@@ -101,6 +113,7 @@ public class PaymentService {
         }
 
         OrderEntity order = new OrderEntity();
+        order.setIdempotencyKey(idempotencyKey != null && !idempotencyKey.isBlank() ? idempotencyKey.trim() : null);
         order.setUserEmail(currentUser.getEmail());
         order.setCourseId(request.courseId());
         order.setSubscriptionPlanId(request.subscriptionPlanId());
@@ -257,6 +270,7 @@ public class PaymentService {
                 .toList();
     }
 
+    @org.springframework.cache.annotation.Cacheable(value = "subscriptionPlans")
     public List<SubscriptionPlanEntity> getPlans() {
         return subscriptionPlanRepository.findAll();
     }
@@ -295,6 +309,27 @@ public class PaymentService {
         return mapCoupon(coupon);
     }
 
+    private final java.util.List<PayoutResponse> payoutLogs = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    public PayoutResponse requestPayout(PayoutRequest request, UserEntity currentUser) {
+        PayoutResponse payout = new PayoutResponse(
+                UUID.randomUUID(),
+                currentUser.getEmail(),
+                request.amount(),
+                "PROCESSING",
+                request.payoutMethod(),
+                Instant.now()
+        );
+        payoutLogs.add(0, payout);
+        return payout;
+    }
+
+    public List<PayoutResponse> getPayoutHistory(String email) {
+        return payoutLogs.stream()
+                .filter(p -> p.instructorEmail().equalsIgnoreCase(email))
+                .toList();
+    }
+
     public RevenueReportResponse getInstructorRevenue(String email) {
         List<InstructorRevenueEntity> revs = instructorRevenueRepository.findByInstructorEmail(email);
         double total = revs.stream().mapToDouble(InstructorRevenueEntity::getTotalAmount).sum();
@@ -330,3 +365,4 @@ public class PaymentService {
         );
     }
 }
+

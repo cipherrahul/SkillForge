@@ -499,11 +499,8 @@ class _LivePlayerModalState extends State<_LivePlayerModal> {
   bool _isMuted = false;
   bool _isVideoOff = false;
   final TextEditingController _chatController = TextEditingController();
-  final List<Map<String, String>> _messages = [
-    {'user': 'Dr. Aris Thorne', 'text': 'Welcome everyone to today’s live stream!'},
-    {'user': 'Sophia Chen', 'text': 'Super excited for the Q&A session!'},
-    {'user': 'Rahul', 'text': 'Can we cover microservices architecture today?'},
-  ];
+  // Chat messages populated from backend /live-sessions/{id}/chat only (no mock data)
+  final List<Map<String, String>> _messages = [];
 
   @override
   Widget build(BuildContext context) {

@@ -61,6 +61,24 @@ public class DatabaseSeeder implements CommandLineRunner {
             userRepository.save(instructor);
         }
 
+        if (!userRepository.existsByEmail("alex.instructor@skillforge.com")) {
+            UserEntity instructor = new UserEntity();
+            instructor.setEmail("alex.instructor@skillforge.com");
+            instructor.setFullName("Alex Johnson");
+            instructor.setPasswordHash(passwordEncoder.encode("password123"));
+            instructor.setRole(Role.INSTRUCTOR);
+            userRepository.save(instructor);
+        }
+
+        if (!userRepository.existsByEmail("john.doe@skillforge.com")) {
+            UserEntity student = new UserEntity();
+            student.setEmail("john.doe@skillforge.com");
+            student.setFullName("John Doe");
+            student.setPasswordHash(passwordEncoder.encode("password123"));
+            student.setRole(Role.STUDENT);
+            userRepository.save(student);
+        }
+
         if (!userRepository.existsByEmail("admin@skillforge.com")) {
             UserEntity admin = new UserEntity();
             admin.setEmail("admin@skillforge.com");
