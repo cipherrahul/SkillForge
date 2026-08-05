@@ -3,7 +3,10 @@ class AppConstants {
   // Flutter Web → backend runs at localhost:8080
   // Android emulator → use 10.0.2.2:8080
   // Real device → use machine's LAN IP e.g. 192.168.1.x:8080
-  static const String baseUrl = 'https://skillforge-03ys.onrender.com/api/v1';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://localhost:8080/api/v1',
+  );
 
   // ─── Auth  (AuthController → @RequestMapping("/api/v1/auth")) ─────────────
   static const String loginUrl        = '$baseUrl/auth/login';

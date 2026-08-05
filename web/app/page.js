@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 
 // ─── Configurable API Base ────────────────────────────────────────────────────
-const API_BASE = "https://skillforge-03ys.onrender.com/api/v1";
+const API_BASE = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+  ? "http://localhost:8080/api/v1"
+  : (process.env.NEXT_PUBLIC_API_URL || "https://skillforge-03ys.onrender.com/api/v1");
 
 // ─── SVG Icon Components (Lucide-style, clean strokes) ───────────────────────
 const Icons = {

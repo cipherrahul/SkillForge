@@ -42,7 +42,7 @@ public class AnalyticsController {
 
     // Instructor-specific revenue report (used by web instructor dashboard)
     // Returns gross sales, instructor 70% share, platform 30% fee for the authenticated instructor
-    @GetMapping("/api/v1/reports/instructor/revenue")
+    @GetMapping("/api/v1/analytics/instructor/revenue")
     public ResponseEntity<ApiResponse<InstructorRevenueResponse>> getInstructorRevenue(HttpServletRequest servletRequest,
                                                                                         Principal principal) {
         UserEntity currentUser = courseService.getCurrentUser(principal);
